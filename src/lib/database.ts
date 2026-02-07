@@ -1,25 +1,15 @@
 import { supabase } from './supabase';
 import { WorkSession, DailySummary, Goal } from '../types';
 
-async function ensureUser() {
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    const { data, error } = await supabase.auth.signInAnonymously();
-    if (error) throw error;
-    return data.user?.id;
-  }
-
-  return user.id;
-}
+const PERSONAL_USER_ID = '123e4567-e89b-12d3-a456-426614174000';
 
 export const db = {
   sessions: {
     getAll: async (): Promise<WorkSession[]> => {
-      await ensureUser();
       const { data, error } = await supabase
         .from('work_sessions')
         .select('*')
+        .eq('user_id', PERSONAL_USER_ID)
         .order('date', { ascending: false });
 
       if (error) throw error;
@@ -27,10 +17,10 @@ export const db = {
     },
 
     getByDate: async (date: string): Promise<WorkSession[]> => {
-      await ensureUser();
       const { data, error } = await supabase
         .from('work_sessions')
         .select('*')
+        .eq('user_id', PERSONAL_USER_ID)
         .eq('date', date)
         .order('start_time', { ascending: true });
 
@@ -39,10 +29,9 @@ export const db = {
     },
 
     add: async (session: Omit<WorkSession, 'id' | 'user_id' | 'created_at'>): Promise<WorkSession> => {
-      const userId = await ensureUser();
       const { data, error } = await supabase
         .from('work_sessions')
-        .insert([{ ...session, user_id: userId }])
+        .insert([{ ...session, user_id: PERSONAL_USER_ID }])
         .select()
         .single();
 
@@ -51,21 +40,21 @@ export const db = {
     },
 
     delete: async (id: string): Promise<void> => {
-      await ensureUser();
       const { error } = await supabase
         .from('work_sessions')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', PERSONAL_USER_ID);
 
       if (error) throw error;
     },
 
     getById: async (id: string): Promise<WorkSession | null> => {
-      await ensureUser();
       const { data, error } = await supabase
         .from('work_sessions')
         .select('*')
         .eq('id', id)
+        .eq('user_id', PERSONAL_USER_ID)
         .maybeSingle();
 
       if (error) throw error;
@@ -75,10 +64,10 @@ export const db = {
 
   summaries: {
     getAll: async (): Promise<DailySummary[]> => {
-      await ensureUser();
       const { data, error } = await supabase
         .from('daily_summaries')
         .select('*')
+        .eq('user_id', PERSONAL_USER_ID)
         .order('date', { ascending: false });
 
       if (error) throw error;
@@ -86,10 +75,10 @@ export const db = {
     },
 
     getByDateRange: async (startDate: string, endDate: string): Promise<DailySummary[]> => {
-      await ensureUser();
       const { data, error } = await supabase
         .from('daily_summaries')
         .select('*')
+        .eq('user_id', PERSONAL_USER_ID)
         .gte('date', startDate)
         .lte('date', endDate)
         .order('date', { ascending: true });
@@ -99,10 +88,10 @@ export const db = {
     },
 
     getByDate: async (date: string): Promise<DailySummary | null> => {
-      await ensureUser();
       const { data, error } = await supabase
         .from('daily_summaries')
         .select('*')
+        .eq('user_id', PERSONAL_USER_ID)
         .eq('date', date)
         .maybeSingle();
 
@@ -111,11 +100,10 @@ export const db = {
     },
 
     upsert: async (summary: { date: string; total_hours: number; milestone_quotes_shown?: string[] }): Promise<void> => {
-      const userId = await ensureUser();
       const { error } = await supabase
         .from('daily_summaries')
         .upsert({
-          user_id: userId,
+          user_id: PERSONAL_USER_ID,
           date: summary.date,
           total_hours: summary.total_hours,
           milestone_quotes_shown: summary.milestone_quotes_shown || [],
@@ -130,10 +118,10 @@ export const db = {
 
   goals: {
     getAll: async (): Promise<Goal[]> => {
-      await ensureUser();
       const { data, error } = await supabase
         .from('goals')
         .select('*')
+        .eq('user_id', PERSONAL_USER_ID)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -141,10 +129,10 @@ export const db = {
     },
 
     getByMonth: async (month: string, type?: 'major' | 'minor'): Promise<Goal[]> => {
-      await ensureUser();
       let query = supabase
         .from('goals')
         .select('*')
+        .eq('user_id', PERSONAL_USER_ID)
         .eq('month', month);
 
       if (type) {
@@ -158,10 +146,9 @@ export const db = {
     },
 
     add: async (goal: Omit<Goal, 'id' | 'user_id' | 'created_at'>): Promise<Goal> => {
-      const userId = await ensureUser();
       const { data, error } = await supabase
         .from('goals')
-        .insert([{ ...goal, user_id: userId }])
+        .insert([{ ...goal, user_id: PERSONAL_USER_ID }])
         .select()
         .single();
 
@@ -170,30 +157,30 @@ export const db = {
     },
 
     update: async (id: string, updates: Partial<Goal>): Promise<void> => {
-      await ensureUser();
       const { error } = await supabase
         .from('goals')
         .update(updates)
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', PERSONAL_USER_ID);
 
       if (error) throw error;
     },
 
     delete: async (id: string): Promise<void> => {
-      await ensureUser();
       const { error } = await supabase
         .from('goals')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', PERSONAL_USER_ID);
 
       if (error) throw error;
     },
 
     deleteByMonth: async (month: string): Promise<void> => {
-      await ensureUser();
       const { error } = await supabase
         .from('goals')
         .delete()
+        .eq('user_id', PERSONAL_USER_ID)
         .eq('month', month);
 
       if (error) throw error;
